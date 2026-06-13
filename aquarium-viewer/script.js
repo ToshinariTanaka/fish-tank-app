@@ -21,13 +21,62 @@
   const STORAGE_KEY = 'calmAquariumSettings';
   const MAX_FOOD = 80;
   const NAMES = ['ごんべ', 'ゾロカンス', 'ミレス', 'ルナ', 'しずく', 'アオ', 'こはく', 'ナギ', 'マリン', 'ポポ'];
+  const FISH_SHAPES = {
+    goldfish: {
+      shape: 'goldfish', body: '#ffb45f', fin: '#ff784d', stripe: '#ffe1a8',
+      sizeMin: 0.86, sizeMax: 1.18, speedMin: 22, speedMax: 38,
+      depthMin: 0.38, depthMax: 0.62, bobAmountMin: 6, bobAmountMax: 13, foodChaseMultiplier: 0.9,
+    },
+    angelfish: {
+      shape: 'angelfish', body: '#d6a4ff', fin: '#8957ff', stripe: '#fff0ff',
+      sizeMin: 0.82, sizeMax: 1.12, speedMin: 18, speedMax: 34,
+      depthMin: 0.34, depthMax: 0.60, bobAmountMin: 4, bobAmountMax: 10, foodChaseMultiplier: 0.82,
+    },
+    minnow: {
+      shape: 'minnow', body: '#8ee6ff', fin: '#4aa8ff', stripe: '#e5fbff',
+      sizeMin: 0.58, sizeMax: 0.88, speedMin: 48, speedMax: 78,
+      depthMin: 0.20, depthMax: 0.48, bobAmountMin: 3, bobAmountMax: 8, foodChaseMultiplier: 1.18,
+    },
+    puffer: {
+      shape: 'puffer', body: '#ffd76e', fin: '#ff9f43', stripe: '#fff6ba',
+      sizeMin: 0.74, sizeMax: 1.02, speedMin: 18, speedMax: 32,
+      depthMin: 0.38, depthMax: 0.66, bobAmountMin: 10, bobAmountMax: 21, foodChaseMultiplier: 0.78,
+    },
+    catfish: {
+      shape: 'catfish', body: '#9fbe9b', fin: '#5d8d72', stripe: '#e8f2da',
+      sizeMin: 0.82, sizeMax: 1.10, speedMin: 28, speedMax: 48,
+      depthMin: 0.64, depthMax: 0.78, bobAmountMin: 4, bobAmountMax: 9, foodChaseMultiplier: 0.96,
+    },
+  };
+
   const FISH_TYPES = [
-    { body: '#ffb45f', fin: '#ff784d', stripe: '#ffe1a8' },
-    { body: '#8ee6ff', fin: '#4aa8ff', stripe: '#e5fbff' },
-    { body: '#d6a4ff', fin: '#8957ff', stripe: '#fff0ff' },
-    { body: '#ffd76e', fin: '#ff9f43', stripe: '#fff6ba' },
-    { body: '#9ff0b8', fin: '#37b982', stripe: '#e8fff0' },
+    FISH_SHAPES.goldfish,
+    FISH_SHAPES.angelfish,
+    FISH_SHAPES.minnow,
+    FISH_SHAPES.puffer,
+    FISH_SHAPES.catfish,
   ];
+
+  const NAMED_FISH_CONFIG = {
+    ごんべ: {
+      ...FISH_SHAPES.goldfish,
+      sizeMin: 0.92, sizeMax: 1.02, speedMin: 20, speedMax: 30,
+      bobAmountMin: 5, bobAmountMax: 10, foodChaseMultiplier: 0.86,
+    },
+    ゾロカンス: {
+      ...FISH_SHAPES.minnow,
+      body: '#6fb7d8', fin: '#2f6f9e', stripe: '#d9f7ff',
+      sizeMin: 1.22, sizeMax: 1.42, speedMin: 70, speedMax: 96,
+      depthMin: 0.24, depthMax: 0.58, bobAmountMin: 3, bobAmountMax: 7, foodChaseMultiplier: 1.55,
+    },
+    ミレス: {
+      ...FISH_SHAPES.angelfish,
+      body: '#ceb0ff', fin: '#7d61d5', stripe: '#fff8ff',
+      sizeMin: 0.92, sizeMax: 1.04, speedMin: 18, speedMax: 28,
+      depthMin: 0.38, depthMax: 0.56, bobAmountMin: 3, bobAmountMax: 7, foodChaseMultiplier: 0.78,
+    },
+  };
+
   const TIME_THEMES = {
     day: {
       top: '#6ed5ff', mid: '#147cc0', bottom: '#06395e', sand: '#d7be81', glow: 'rgba(210, 246, 255, 0.24)', overlay: 'rgba(255, 255, 255, 0)',
@@ -56,29 +105,44 @@
 
   class Fish {
     constructor(index, width, height) {
-      const type = FISH_TYPES[index % FISH_TYPES.length];
       this.name = NAMES[index % NAMES.length];
-      this.bodyColor = type.body;
-      this.finColor = type.fin;
-      this.stripeColor = type.stripe;
-      this.size = random(0.68, 1.35);
+      this.type = NAMED_FISH_CONFIG[this.name] || FISH_TYPES[index % FISH_TYPES.length];
+      this.shape = this.type.shape;
+      this.bodyColor = this.type.body;
+      this.finColor = this.type.fin;
+      this.stripeColor = this.type.stripe;
+      this.size = random(this.type.sizeMin, this.type.sizeMax);
       this.length = 58 * this.size;
-      const initialSpeed = random(26, 64) * (Math.random() > 0.5 ? 1 : -1);
+      const initialSpeed = random(this.type.speedMin, this.type.speedMax) * (Math.random() > 0.5 ? 1 : -1);
       this.cruiseSpeed = Math.abs(initialSpeed);
       this.direction = initialSpeed >= 0 ? 1 : -1;
       this.speed = this.direction * this.cruiseSpeed;
       this.x = random(70, Math.max(90, width - 70));
-      this.baseY = random(height * 0.2, height * 0.72);
+      this.baseY = this.randomDepth(height);
       this.y = this.baseY;
       this.phase = random(0, Math.PI * 2);
-      this.bobAmount = random(5, 18);
-      this.bobSpeed = random(0.8, 1.7);
+      this.bobAmount = random(this.type.bobAmountMin, this.type.bobAmountMax);
+      this.bobSpeed = this.shape === 'angelfish' ? random(0.55, 1.0) : random(0.8, 1.7);
       this.turn = this.direction;
       this.targetFood = null;
     }
 
+    randomDepth(height) {
+      const min = this.type.depthMin;
+      const max = this.type.depthMax;
+      return random(height * min, height * max);
+    }
+
+    clampDepth(height) {
+      const sandTop = height * 0.84;
+      const minY = Math.max(height * 0.13, height * this.type.depthMin);
+      const maxY = Math.min(sandTop - this.length * 0.28, height * this.type.depthMax);
+      return { minY, maxY: Math.max(minY, maxY) };
+    }
+
     update(dt, time, width, height, foods) {
-      this.baseY = clamp(this.baseY, height * 0.18, height * 0.74);
+      const depth = this.clampDepth(height);
+      this.baseY = clamp(this.baseY, depth.minY, depth.maxY);
       this.targetFood = findNearestFood(this, foods);
       let desiredSpeed = this.direction * this.cruiseSpeed;
       let targetY = this.baseY + Math.sin(time * this.bobSpeed + this.phase) * this.bobAmount;
@@ -87,9 +151,10 @@
         const dx = this.targetFood.x - this.x;
         const dy = this.targetFood.y - this.y;
         const horizontalDeadZone = Math.max(2, this.length * 0.04);
+        const maxChaseSpeed = 105 * this.size * this.type.foodChaseMultiplier;
         desiredSpeed = Math.abs(dx) <= horizontalDeadZone
           ? 0
-          : clamp(dx * 0.9, -105 * this.size, 105 * this.size);
+          : clamp(dx * 0.9 * this.type.foodChaseMultiplier, -maxChaseSpeed, maxChaseSpeed);
         if (Math.abs(desiredSpeed) > 0.5) this.direction = Math.sign(desiredSpeed);
         targetY = this.y + clamp(dy * 0.85, -70, 70) * dt;
       }
@@ -109,63 +174,168 @@
       this.turn += (facingDirection - this.turn) * Math.min(1, dt * 4);
       this.x += this.speed * dt;
       this.y += (targetY - this.y) * Math.min(1, dt * 2.2);
-      this.y = clamp(this.y, height * 0.13, height * 0.79);
+      this.y = clamp(this.y, height * 0.13, height * 0.82 - this.length * 0.12);
     }
 
     draw(context, showName) {
       context.save();
       context.translate(this.x, this.y);
       context.scale(this.turn >= 0 ? 1 : -1, 1);
-      const length = this.length;
-      const bodyHeight = length * 0.38;
+      if (this.shape === 'goldfish') this.drawGoldfish(context);
+      else if (this.shape === 'angelfish') this.drawAngelfish(context);
+      else if (this.shape === 'minnow') this.drawMinnow(context);
+      else if (this.shape === 'puffer') this.drawPuffer(context);
+      else if (this.shape === 'catfish') this.drawCatfish(context);
+      context.restore();
 
+      if (showName) this.drawName(context);
+    }
+
+    drawName(context) {
+      context.save();
+      context.font = `${Math.max(12, 12 * this.size)}px sans-serif`;
+      context.textAlign = 'center';
+      context.fillStyle = 'rgba(1, 16, 25, 0.45)';
+      context.fillText(this.name, this.x + 1, this.y - this.length * 0.36 + 1);
+      context.fillStyle = 'rgba(240, 252, 255, 0.92)';
+      context.fillText(this.name, this.x, this.y - this.length * 0.36);
+      context.restore();
+    }
+
+    drawEye(context, x, y, radius) {
+      context.fillStyle = '#07131c';
+      context.beginPath();
+      context.arc(x, y, radius, 0, Math.PI * 2);
+      context.fill();
+    }
+
+    drawGoldfish(context) {
+      const length = this.length;
+      const bodyHeight = length * 0.46;
       context.fillStyle = this.finColor;
       context.beginPath();
-      context.moveTo(-length * 0.42, 0);
-      context.lineTo(-length * 0.72, -bodyHeight * 0.55);
-      context.lineTo(-length * 0.68, bodyHeight * 0.55);
+      context.moveTo(-length * 0.38, 0);
+      context.lineTo(-length * 0.78, -bodyHeight * 0.72);
+      context.lineTo(-length * 0.70, 0);
+      context.lineTo(-length * 0.78, bodyHeight * 0.72);
       context.closePath();
       context.fill();
-
       context.beginPath();
-      context.moveTo(-length * 0.05, -bodyHeight * 0.45);
-      context.lineTo(-length * 0.25, -bodyHeight * 0.9);
-      context.lineTo(length * 0.08, -bodyHeight * 0.45);
+      context.moveTo(-length * 0.04, -bodyHeight * 0.48);
+      context.lineTo(-length * 0.22, -bodyHeight * 0.92);
+      context.lineTo(length * 0.12, -bodyHeight * 0.45);
       context.closePath();
       context.fill();
+      this.drawOvalBody(context, length * 0.43, bodyHeight * 0.58);
+      this.drawStripes(context, bodyHeight, length);
+      this.drawEye(context, length * 0.28, -bodyHeight * 0.12, Math.max(2, length * 0.035));
+    }
 
+    drawAngelfish(context) {
+      const length = this.length;
+      const bodyHeight = length * 0.72;
+      context.fillStyle = this.finColor;
+      context.beginPath();
+      context.moveTo(-length * 0.38, 0);
+      context.lineTo(-length * 0.64, -bodyHeight * 0.18);
+      context.lineTo(-length * 0.64, bodyHeight * 0.18);
+      context.closePath();
+      context.fill();
+      context.beginPath();
+      context.moveTo(-length * 0.12, -bodyHeight * 0.18);
+      context.lineTo(length * 0.02, -bodyHeight * 0.82);
+      context.lineTo(length * 0.20, -bodyHeight * 0.08);
+      context.closePath();
+      context.fill();
+      context.beginPath();
+      context.moveTo(-length * 0.10, bodyHeight * 0.18);
+      context.lineTo(length * 0.04, bodyHeight * 0.82);
+      context.lineTo(length * 0.22, bodyHeight * 0.08);
+      context.closePath();
+      context.fill();
+      this.drawOvalBody(context, length * 0.34, bodyHeight * 0.43);
+      this.drawStripes(context, bodyHeight * 0.8, length);
+      this.drawEye(context, length * 0.21, -bodyHeight * 0.06, Math.max(2, length * 0.032));
+    }
+
+    drawMinnow(context) {
+      const length = this.length;
+      const bodyHeight = length * 0.26;
+      context.fillStyle = this.finColor;
+      context.beginPath();
+      context.moveTo(-length * 0.43, 0);
+      context.lineTo(-length * 0.63, -bodyHeight * 0.45);
+      context.lineTo(-length * 0.62, bodyHeight * 0.45);
+      context.closePath();
+      context.fill();
+      this.drawOvalBody(context, length * 0.48, bodyHeight * 0.52);
+      context.strokeStyle = this.stripeColor;
+      context.lineWidth = Math.max(1, length * 0.025);
+      context.beginPath();
+      context.moveTo(-length * 0.30, 0);
+      context.lineTo(length * 0.32, 0);
+      context.stroke();
+      this.drawEye(context, length * 0.32, -bodyHeight * 0.16, Math.max(1.7, length * 0.03));
+    }
+
+    drawPuffer(context) {
+      const length = this.length;
+      const bodyHeight = length * 0.56;
+      context.fillStyle = this.finColor;
+      context.beginPath();
+      context.moveTo(-length * 0.39, 0);
+      context.lineTo(-length * 0.58, -bodyHeight * 0.25);
+      context.lineTo(-length * 0.58, bodyHeight * 0.25);
+      context.closePath();
+      context.fill();
+      context.beginPath();
+      context.ellipse(length * 0.04, bodyHeight * 0.24, length * 0.12, bodyHeight * 0.16, -0.2, 0, Math.PI * 2);
+      context.fill();
+      this.drawOvalBody(context, length * 0.38, bodyHeight * 0.62);
+      this.drawStripes(context, bodyHeight * 0.75, length * 0.8);
+      this.drawEye(context, length * 0.24, -bodyHeight * 0.12, Math.max(2, length * 0.034));
+    }
+
+    drawCatfish(context) {
+      const length = this.length;
+      const bodyHeight = length * 0.30;
+      context.fillStyle = this.finColor;
+      context.beginPath();
+      context.moveTo(-length * 0.44, 0);
+      context.lineTo(-length * 0.66, -bodyHeight * 0.42);
+      context.lineTo(-length * 0.66, bodyHeight * 0.42);
+      context.closePath();
+      context.fill();
+      this.drawOvalBody(context, length * 0.52, bodyHeight * 0.52);
+      context.strokeStyle = this.stripeColor;
+      context.lineWidth = Math.max(1, length * 0.024);
+      context.beginPath();
+      context.moveTo(length * 0.31, bodyHeight * 0.02);
+      context.quadraticCurveTo(length * 0.55, -bodyHeight * 0.30, length * 0.72, -bodyHeight * 0.20);
+      context.moveTo(length * 0.31, bodyHeight * 0.07);
+      context.quadraticCurveTo(length * 0.55, bodyHeight * 0.38, length * 0.72, bodyHeight * 0.28);
+      context.stroke();
+      this.drawEye(context, length * 0.29, -bodyHeight * 0.14, Math.max(1.8, length * 0.028));
+    }
+
+    drawOvalBody(context, radiusX, radiusY) {
       context.fillStyle = this.bodyColor;
       context.beginPath();
-      context.ellipse(0, 0, length * 0.46, bodyHeight * 0.55, 0, 0, Math.PI * 2);
+      context.ellipse(0, 0, radiusX, radiusY, 0, 0, Math.PI * 2);
       context.fill();
+    }
 
+    drawStripes(context, bodyHeight, length) {
       context.strokeStyle = this.stripeColor;
       context.lineWidth = Math.max(1.5, length * 0.035);
       context.globalAlpha = 0.65;
       context.beginPath();
-      context.moveTo(-length * 0.12, -bodyHeight * 0.42);
-      context.quadraticCurveTo(-length * 0.04, 0, -length * 0.12, bodyHeight * 0.42);
-      context.moveTo(length * 0.09, -bodyHeight * 0.36);
-      context.quadraticCurveTo(length * 0.16, 0, length * 0.09, bodyHeight * 0.36);
+      context.moveTo(-length * 0.10, -bodyHeight * 0.36);
+      context.quadraticCurveTo(-length * 0.03, 0, -length * 0.10, bodyHeight * 0.36);
+      context.moveTo(length * 0.10, -bodyHeight * 0.30);
+      context.quadraticCurveTo(length * 0.17, 0, length * 0.10, bodyHeight * 0.30);
       context.stroke();
       context.globalAlpha = 1;
-
-      context.fillStyle = '#07131c';
-      context.beginPath();
-      context.arc(length * 0.29, -bodyHeight * 0.12, Math.max(2, length * 0.035), 0, Math.PI * 2);
-      context.fill();
-      context.restore();
-
-      if (showName) {
-        context.save();
-        context.font = `${Math.max(12, 12 * this.size)}px sans-serif`;
-        context.textAlign = 'center';
-        context.fillStyle = 'rgba(1, 16, 25, 0.45)';
-        context.fillText(this.name, this.x + 1, this.y - this.length * 0.36 + 1);
-        context.fillStyle = 'rgba(240, 252, 255, 0.92)';
-        context.fillText(this.name, this.x, this.y - this.length * 0.36);
-        context.restore();
-      }
     }
   }
 
@@ -514,6 +684,8 @@
     });
     window.addEventListener('resize', resize);
   }
+
+  window.__AQUARIUM_DEBUG__ = { state, Fish, FISH_TYPES, FISH_SHAPES, NAMED_FISH_CONFIG, update };
 
   resize();
   applySettingsToUi();
