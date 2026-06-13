@@ -685,7 +685,6 @@
     window.addEventListener('resize', resize);
   }
 
-  window.__AQUARIUM_DEBUG__ = { state, Fish, FISH_TYPES, FISH_SHAPES, NAMED_FISH_CONFIG, update };
 
   resize();
   applySettingsToUi();
