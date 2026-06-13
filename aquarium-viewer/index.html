@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>水槽観賞アプリ</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="app" aria-label="水槽観賞アプリ">
+    <canvas id="aquarium" aria-label="魚が泳ぐ水槽"></canvas>
+
+    <section id="controlPanel" class="control-panel" aria-label="操作パネル">
+      <div class="panel-header">
+        <h1>水槽観賞</h1>
+        <button id="hidePanelButton" type="button" title="操作パネルを隠す">隠す</button>
+      </div>
+
+      <label>
+        魚の数
+        <input id="fishCount" type="range" min="3" max="24" step="1">
+        <span id="fishCountValue" class="value"></span>
+      </label>
+
+      <label>
+        泡の量
+        <input id="bubbleCount" type="range" min="12" max="120" step="1">
+        <span id="bubbleCountValue" class="value"></span>
+      </label>
+
+      <label class="checkbox-row">
+        <input id="showNames" type="checkbox">
+        魚の名前を表示
+      </label>
+
+      <label>
+        時間帯
+        <select id="timeMode">
+          <option value="auto">自動</option>
+          <option value="day">昼</option>
+          <option value="evening">夕方</option>
+          <option value="night">夜</option>
+        </select>
+      </label>
+
+      <div class="button-row">
+        <button id="feedManyButton" type="button">餌を一括投入</button>
+        <button id="fullscreenButton" type="button">全画面表示</button>
+      </div>
+      <p class="hint">水槽をクリックすると餌を落とせます。</p>
+    </section>
+
+    <button id="showPanelButton" class="show-panel-button" type="button">操作パネル</button>
+  </main>
+  <script src="script.js"></script>
+</body>
+</html>

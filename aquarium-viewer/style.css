@@ -1,0 +1,179 @@
+:root {
+  color-scheme: dark;
+  font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, system-ui, sans-serif;
+  --panel-bg: rgba(7, 28, 46, 0.66);
+  --panel-border: rgba(255, 255, 255, 0.22);
+  --text: #eef9ff;
+  --accent: #8be3ff;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: #021322;
+  color: var(--text);
+}
+
+.app {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  min-width: 320px;
+  min-height: 360px;
+  background: radial-gradient(circle at 50% 0%, rgba(166, 230, 255, 0.25), transparent 40%), #03243d;
+}
+
+#aquarium {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: crosshair;
+  touch-action: manipulation;
+}
+
+.control-panel,
+.show-panel-button {
+  position: fixed;
+  z-index: 10;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--panel-border);
+  box-shadow: 0 16px 42px rgba(0, 0, 0, 0.28);
+}
+
+.control-panel {
+  top: clamp(12px, 2vw, 24px);
+  right: clamp(12px, 2vw, 24px);
+  width: min(340px, calc(100vw - 24px));
+  padding: 16px;
+  border-radius: 20px;
+  background: var(--panel-bg);
+  transition: opacity 0.25s ease, transform 0.25s ease, visibility 0.25s ease;
+}
+
+.control-panel.hidden {
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-12px) scale(0.98);
+  pointer-events: none;
+}
+
+.panel-header,
+.button-row,
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.panel-header {
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+h1 {
+  margin: 0;
+  font-size: 1.15rem;
+  letter-spacing: 0.08em;
+}
+
+label {
+  display: grid;
+  grid-template-columns: 6em 1fr auto;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 0;
+  font-size: 0.92rem;
+}
+
+.checkbox-row {
+  grid-template-columns: auto 1fr;
+}
+
+input[type="range"] {
+  accent-color: var(--accent);
+  width: 100%;
+}
+
+input[type="checkbox"],
+select,
+button {
+  cursor: pointer;
+}
+
+select,
+button {
+  border: 1px solid rgba(255, 255, 255, 0.26);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  color: var(--text);
+  padding: 8px 12px;
+  font: inherit;
+}
+
+select {
+  border-radius: 12px;
+}
+
+select option {
+  color: #08213a;
+}
+
+button:hover,
+select:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.button-row {
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.value {
+  min-width: 2.5em;
+  text-align: right;
+  color: #c8f5ff;
+}
+
+.hint {
+  margin: 12px 0 0;
+  color: rgba(238, 249, 255, 0.75);
+  font-size: 0.82rem;
+}
+
+.show-panel-button {
+  right: 16px;
+  top: 16px;
+  display: none;
+  background: rgba(7, 28, 46, 0.72);
+}
+
+.show-panel-button.visible {
+  display: inline-flex;
+}
+
+@media (max-width: 640px) {
+  .control-panel {
+    left: 12px;
+    right: 12px;
+    top: 12px;
+    width: auto;
+    padding: 12px;
+  }
+
+  label {
+    grid-template-columns: 5.5em 1fr auto;
+    font-size: 0.85rem;
+  }
+
+  .button-row button {
+    flex: 1 1 130px;
+  }
+}
