@@ -63,36 +63,50 @@
       this.stripeColor = type.stripe;
       this.size = random(0.68, 1.35);
       this.length = 58 * this.size;
-      this.speed = random(26, 64) * (Math.random() > 0.5 ? 1 : -1);
+      const initialSpeed = random(26, 64) * (Math.random() > 0.5 ? 1 : -1);
+      this.cruiseSpeed = Math.abs(initialSpeed);
+      this.direction = initialSpeed >= 0 ? 1 : -1;
+      this.speed = this.direction * this.cruiseSpeed;
       this.x = random(70, Math.max(90, width - 70));
       this.baseY = random(height * 0.2, height * 0.72);
       this.y = this.baseY;
       this.phase = random(0, Math.PI * 2);
       this.bobAmount = random(5, 18);
       this.bobSpeed = random(0.8, 1.7);
-      this.turn = this.speed > 0 ? 1 : -1;
+      this.turn = this.direction;
       this.targetFood = null;
     }
 
     update(dt, time, width, height, foods) {
       this.baseY = clamp(this.baseY, height * 0.18, height * 0.74);
       this.targetFood = findNearestFood(this, foods);
-      let desiredSpeed = Math.sign(this.speed || 1) * Math.abs(this.speed);
+      let desiredSpeed = this.direction * this.cruiseSpeed;
       let targetY = this.baseY + Math.sin(time * this.bobSpeed + this.phase) * this.bobAmount;
 
       if (this.targetFood) {
         const dx = this.targetFood.x - this.x;
         const dy = this.targetFood.y - this.y;
-        desiredSpeed = clamp(dx * 0.9, -105 * this.size, 105 * this.size);
+        const horizontalDeadZone = Math.max(2, this.length * 0.04);
+        desiredSpeed = Math.abs(dx) <= horizontalDeadZone
+          ? 0
+          : clamp(dx * 0.9, -105 * this.size, 105 * this.size);
+        if (Math.abs(desiredSpeed) > 0.5) this.direction = Math.sign(desiredSpeed);
         targetY = this.y + clamp(dy * 0.85, -70, 70) * dt;
       }
 
-      // 端では急反転せず、速度目標を徐々に反対方向へ寄せる。
+      // 端では低下した現在速度ではなく、巡航速度を基準に反転する。
       const margin = this.length * 0.65;
-      if (this.x > width - margin) desiredSpeed = -Math.abs(this.speed);
-      if (this.x < margin) desiredSpeed = Math.abs(this.speed);
+      if (this.x > width - margin) {
+        this.direction = -1;
+        desiredSpeed = -this.cruiseSpeed;
+      }
+      if (this.x < margin) {
+        this.direction = 1;
+        desiredSpeed = this.cruiseSpeed;
+      }
       this.speed += (desiredSpeed - this.speed) * Math.min(1, dt * 2.4);
-      this.turn += (Math.sign(this.speed || this.turn) - this.turn) * Math.min(1, dt * 4);
+      const facingDirection = Math.abs(this.speed) > 0.5 ? Math.sign(this.speed) : this.direction;
+      this.turn += (facingDirection - this.turn) * Math.min(1, dt * 4);
       this.x += this.speed * dt;
       this.y += (targetY - this.y) * Math.min(1, dt * 2.2);
       this.y = clamp(this.y, height * 0.13, height * 0.79);
