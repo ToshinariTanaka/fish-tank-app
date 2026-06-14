@@ -202,120 +202,180 @@
       context.restore();
     }
 
+    getSwimBend() {
+      const motion = Math.abs(this.speed) / Math.max(1, this.cruiseSpeed);
+      return Math.sin(performance.now() * 0.009 + this.phase) * 0.07 * clamp(motion, 0.35, 1.35);
+    }
+
+    makeBodyGradient(context, topColor, middleColor, bellyColor, height) {
+      const gradient = context.createLinearGradient(0, -height, 0, height);
+      gradient.addColorStop(0, topColor);
+      gradient.addColorStop(0.46, middleColor);
+      gradient.addColorStop(1, bellyColor);
+      return gradient;
+    }
+
     drawEye(context, x, y, radius) {
-      context.fillStyle = '#07131c';
+      const eyeGradient = context.createRadialGradient(x - radius * 0.25, y - radius * 0.25, radius * 0.2, x, y, radius);
+      eyeGradient.addColorStop(0, '#ffffff');
+      eyeGradient.addColorStop(0.34, '#dff8ff');
+      eyeGradient.addColorStop(0.38, '#2d4f62');
+      eyeGradient.addColorStop(1, '#061019');
+      context.fillStyle = eyeGradient;
       context.beginPath();
       context.arc(x, y, radius, 0, Math.PI * 2);
       context.fill();
+      context.fillStyle = 'rgba(255, 255, 255, 0.92)';
+      context.beginPath();
+      context.arc(x + radius * 0.28, y - radius * 0.34, radius * 0.28, 0, Math.PI * 2);
+      context.fill();
+    }
+
+    drawFin(context, points, color = this.finColor, alpha = 0.72) {
+      context.save();
+      context.globalAlpha = alpha;
+      const gradient = context.createLinearGradient(0, -this.length * 0.25, 0, this.length * 0.25);
+      gradient.addColorStop(0, color);
+      gradient.addColorStop(1, 'rgba(255, 255, 255, 0.28)');
+      context.fillStyle = gradient;
+      context.strokeStyle = 'rgba(80, 38, 22, 0.18)';
+      context.lineWidth = Math.max(0.8, this.length * 0.012);
+      context.beginPath();
+      context.moveTo(points[0][0], points[0][1]);
+      for (let i = 1; i < points.length; i += 1) context.lineTo(points[i][0], points[i][1]);
+      context.closePath();
+      context.fill();
+      context.stroke();
+      context.restore();
     }
 
     drawGoldfish(context) {
       const length = this.length;
-      const bodyHeight = length * 0.46;
-      context.fillStyle = this.finColor;
+      const h = length * 0.48;
+      const bend = this.getSwimBend();
+      this.drawFin(context, [[-length * 0.34, 0], [-length * 0.76, -h * (0.82 + bend)], [-length * 0.63, -h * 0.08], [-length * 0.80, h * (0.82 - bend)]], this.finColor, 0.66);
+      this.drawFin(context, [[-length * 0.04, -h * 0.52], [-length * 0.22, -h * 1.02], [length * 0.17, -h * 0.42]], this.finColor, 0.58);
+      this.drawFin(context, [[length * 0.02, h * 0.40], [-length * 0.11, h * 0.82], [length * 0.23, h * 0.40]], this.finColor, 0.48);
+      context.fillStyle = this.makeBodyGradient(context, '#d95f25', this.bodyColor, '#fff0c8', h * 0.58);
       context.beginPath();
-      context.moveTo(-length * 0.38, 0);
-      context.lineTo(-length * 0.78, -bodyHeight * 0.72);
-      context.lineTo(-length * 0.70, 0);
-      context.lineTo(-length * 0.78, bodyHeight * 0.72);
-      context.closePath();
+      context.moveTo(-length * 0.42, 0);
+      context.bezierCurveTo(-length * 0.32, -h * 0.58, length * 0.10, -h * 0.72, length * 0.39, -h * 0.16);
+      context.bezierCurveTo(length * 0.49, h * 0.08, length * 0.25, h * 0.62, -length * 0.05, h * 0.64);
+      context.bezierCurveTo(-length * 0.30, h * 0.62, -length * 0.48, h * 0.28, -length * 0.42, 0);
       context.fill();
-      context.beginPath();
-      context.moveTo(-length * 0.04, -bodyHeight * 0.48);
-      context.lineTo(-length * 0.22, -bodyHeight * 0.92);
-      context.lineTo(length * 0.12, -bodyHeight * 0.45);
-      context.closePath();
-      context.fill();
-      this.drawOvalBody(context, length * 0.43, bodyHeight * 0.58);
-      this.drawStripes(context, bodyHeight, length);
-      this.drawEye(context, length * 0.28, -bodyHeight * 0.12, Math.max(2, length * 0.035));
+      this.drawStripes(context, h, length);
+      this.drawEye(context, length * 0.29, -h * 0.12, Math.max(2.4, length * 0.04));
     }
 
     drawAngelfish(context) {
       const length = this.length;
-      const bodyHeight = length * 0.72;
-      context.fillStyle = this.finColor;
+      const h = length * 0.76;
+      const bend = this.getSwimBend();
+      this.drawFin(context, [[-length * 0.31, 0], [-length * 0.66, -h * 0.26], [-length * 0.66, h * 0.26]], this.finColor, 0.58);
+      this.drawFin(context, [[-length * 0.12, -h * 0.20], [length * 0.02 + bend * length, -h * 0.98], [length * 0.24, -h * 0.09]], this.finColor, 0.62);
+      this.drawFin(context, [[-length * 0.10, h * 0.17], [length * 0.05 - bend * length, h * 1.03], [length * 0.25, h * 0.08]], this.finColor, 0.58);
+      context.fillStyle = this.makeBodyGradient(context, '#7b5bc2', this.bodyColor, '#fff8ff', h * 0.45);
       context.beginPath();
-      context.moveTo(-length * 0.38, 0);
-      context.lineTo(-length * 0.64, -bodyHeight * 0.18);
-      context.lineTo(-length * 0.64, bodyHeight * 0.18);
-      context.closePath();
+      context.moveTo(-length * 0.35, 0);
+      context.bezierCurveTo(-length * 0.21, -h * 0.47, length * 0.18, -h * 0.44, length * 0.36, -h * 0.02);
+      context.bezierCurveTo(length * 0.21, h * 0.47, -length * 0.20, h * 0.49, -length * 0.35, 0);
       context.fill();
-      context.beginPath();
-      context.moveTo(-length * 0.12, -bodyHeight * 0.18);
-      context.lineTo(length * 0.02, -bodyHeight * 0.82);
-      context.lineTo(length * 0.20, -bodyHeight * 0.08);
-      context.closePath();
-      context.fill();
-      context.beginPath();
-      context.moveTo(-length * 0.10, bodyHeight * 0.18);
-      context.lineTo(length * 0.04, bodyHeight * 0.82);
-      context.lineTo(length * 0.22, bodyHeight * 0.08);
-      context.closePath();
-      context.fill();
-      this.drawOvalBody(context, length * 0.34, bodyHeight * 0.43);
-      this.drawStripes(context, bodyHeight * 0.8, length);
-      this.drawEye(context, length * 0.21, -bodyHeight * 0.06, Math.max(2, length * 0.032));
+      this.drawVerticalBands(context, h * 0.84, length, 3);
+      this.drawEye(context, length * 0.22, -h * 0.06, Math.max(2.2, length * 0.034));
     }
 
     drawMinnow(context) {
       const length = this.length;
-      const bodyHeight = length * 0.26;
-      context.fillStyle = this.finColor;
+      const h = length * 0.27;
+      const bend = this.getSwimBend();
+      this.drawFin(context, [[-length * 0.43, 0], [-length * 0.68, -h * (0.58 + bend)], [-length * 0.61, 0], [-length * 0.68, h * (0.58 - bend)]], this.finColor, 0.58);
+      this.drawFin(context, [[-length * 0.05, -h * 0.50], [-length * 0.20, -h * 0.95], [length * 0.15, -h * 0.42]], this.finColor, 0.42);
+      context.fillStyle = this.makeBodyGradient(context, '#2f8bb8', this.bodyColor, '#efffff', h * 0.62);
       context.beginPath();
-      context.moveTo(-length * 0.43, 0);
-      context.lineTo(-length * 0.63, -bodyHeight * 0.45);
-      context.lineTo(-length * 0.62, bodyHeight * 0.45);
-      context.closePath();
+      context.moveTo(-length * 0.46, 0);
+      context.bezierCurveTo(-length * 0.25, -h * 0.62, length * 0.22, -h * 0.56, length * 0.45, -h * 0.08);
+      context.bezierCurveTo(length * 0.28, h * 0.48, -length * 0.25, h * 0.54, -length * 0.46, 0);
       context.fill();
-      this.drawOvalBody(context, length * 0.48, bodyHeight * 0.52);
       context.strokeStyle = this.stripeColor;
-      context.lineWidth = Math.max(1, length * 0.025);
+      context.lineWidth = Math.max(1.2, length * 0.022);
       context.beginPath();
-      context.moveTo(-length * 0.30, 0);
-      context.lineTo(length * 0.32, 0);
+      context.moveTo(-length * 0.32, -h * 0.03);
+      context.quadraticCurveTo(0, -h * 0.16, length * 0.34, -h * 0.03);
       context.stroke();
-      this.drawEye(context, length * 0.32, -bodyHeight * 0.16, Math.max(1.7, length * 0.03));
+      this.drawEye(context, length * 0.32, -h * 0.17, Math.max(1.8, length * 0.031));
     }
 
     drawPuffer(context) {
       const length = this.length;
-      const bodyHeight = length * 0.56;
-      context.fillStyle = this.finColor;
+      const h = length * 0.57;
+      this.drawFin(context, [[-length * 0.36, 0], [-length * 0.59, -h * 0.28], [-length * 0.58, h * 0.28]], this.finColor, 0.54);
+      this.drawFin(context, [[length * 0.08, h * 0.20], [length * 0.24, h * 0.45], [length * 0.30, h * 0.12]], this.finColor, 0.48);
+      context.fillStyle = this.makeBodyGradient(context, '#caa13b', this.bodyColor, '#fff7ba', h * 0.65);
       context.beginPath();
-      context.moveTo(-length * 0.39, 0);
-      context.lineTo(-length * 0.58, -bodyHeight * 0.25);
-      context.lineTo(-length * 0.58, bodyHeight * 0.25);
-      context.closePath();
+      context.moveTo(-length * 0.40, 0);
+      context.bezierCurveTo(-length * 0.34, -h * 0.60, length * 0.22, -h * 0.70, length * 0.40, -h * 0.08);
+      context.bezierCurveTo(length * 0.47, h * 0.26, length * 0.16, h * 0.65, -length * 0.14, h * 0.63);
+      context.bezierCurveTo(-length * 0.34, h * 0.52, -length * 0.47, h * 0.20, -length * 0.40, 0);
       context.fill();
-      context.beginPath();
-      context.ellipse(length * 0.04, bodyHeight * 0.24, length * 0.12, bodyHeight * 0.16, -0.2, 0, Math.PI * 2);
-      context.fill();
-      this.drawOvalBody(context, length * 0.38, bodyHeight * 0.62);
-      this.drawStripes(context, bodyHeight * 0.75, length * 0.8);
-      this.drawEye(context, length * 0.24, -bodyHeight * 0.12, Math.max(2, length * 0.034));
+      this.drawSpots(context, length, h);
+      this.drawEye(context, length * 0.25, -h * 0.13, Math.max(2.3, length * 0.036));
     }
 
     drawCatfish(context) {
       const length = this.length;
-      const bodyHeight = length * 0.30;
-      context.fillStyle = this.finColor;
+      const h = length * 0.31;
+      const bend = this.getSwimBend();
+      this.drawFin(context, [[-length * 0.46, 0], [-length * 0.66, -h * (0.38 + bend)], [-length * 0.64, h * (0.38 - bend)]], this.finColor, 0.48);
+      this.drawFin(context, [[-length * 0.08, -h * 0.48], [-length * 0.24, -h * 0.92], [length * 0.10, -h * 0.38]], this.finColor, 0.38);
+      context.fillStyle = this.makeBodyGradient(context, '#526f59', this.bodyColor, '#edf1d7', h * 0.62);
       context.beginPath();
-      context.moveTo(-length * 0.44, 0);
-      context.lineTo(-length * 0.66, -bodyHeight * 0.42);
-      context.lineTo(-length * 0.66, bodyHeight * 0.42);
-      context.closePath();
+      context.moveTo(-length * 0.48, 0);
+      context.bezierCurveTo(-length * 0.22, -h * 0.58, length * 0.35, -h * 0.50, length * 0.48, -h * 0.10);
+      context.bezierCurveTo(length * 0.54, h * 0.24, length * 0.16, h * 0.58, -length * 0.20, h * 0.52);
+      context.bezierCurveTo(-length * 0.40, h * 0.44, -length * 0.55, h * 0.18, -length * 0.48, 0);
       context.fill();
-      this.drawOvalBody(context, length * 0.52, bodyHeight * 0.52);
-      context.strokeStyle = this.stripeColor;
-      context.lineWidth = Math.max(1, length * 0.024);
+      context.fillStyle = 'rgba(245, 245, 210, 0.42)';
       context.beginPath();
-      context.moveTo(length * 0.31, bodyHeight * 0.02);
-      context.quadraticCurveTo(length * 0.55, -bodyHeight * 0.30, length * 0.72, -bodyHeight * 0.20);
-      context.moveTo(length * 0.31, bodyHeight * 0.07);
-      context.quadraticCurveTo(length * 0.55, bodyHeight * 0.38, length * 0.72, bodyHeight * 0.28);
+      context.ellipse(length * 0.02, h * 0.20, length * 0.35, h * 0.20, 0, 0, Math.PI * 2);
+      context.fill();
+      context.strokeStyle = this.stripeColor;
+      context.lineWidth = Math.max(1, length * 0.018);
+      context.beginPath();
+      context.moveTo(length * 0.31, h * 0.02);
+      context.quadraticCurveTo(length * 0.56, -h * 0.40, length * 0.76, -h * 0.24);
+      context.moveTo(length * 0.31, h * 0.08);
+      context.quadraticCurveTo(length * 0.57, h * 0.46, length * 0.76, h * 0.32);
+      context.moveTo(length * 0.28, h * 0.14);
+      context.quadraticCurveTo(length * 0.50, h * 0.08, length * 0.67, h * 0.10);
       context.stroke();
-      this.drawEye(context, length * 0.29, -bodyHeight * 0.14, Math.max(1.8, length * 0.028));
+      this.drawEye(context, length * 0.30, -h * 0.15, Math.max(1.9, length * 0.029));
+    }
+
+    drawVerticalBands(context, bodyHeight, length, count) {
+      context.save();
+      context.strokeStyle = this.stripeColor;
+      context.globalAlpha = 0.62;
+      context.lineWidth = Math.max(1.5, length * 0.035);
+      for (let i = 0; i < count; i += 1) {
+        const x = -length * 0.16 + i * length * 0.15;
+        context.beginPath();
+        context.moveTo(x, -bodyHeight * 0.42);
+        context.quadraticCurveTo(x + length * 0.035, 0, x, bodyHeight * 0.42);
+        context.stroke();
+      }
+      context.restore();
+    }
+
+    drawSpots(context, length, bodyHeight) {
+      context.save();
+      context.fillStyle = 'rgba(151, 111, 42, 0.32)';
+      const spots = [[-0.16, -0.28, 0.035], [0.02, -0.36, 0.028], [0.15, -0.12, 0.032], [-0.02, 0.18, 0.026], [-0.24, 0.10, 0.023]];
+      for (const [x, y, r] of spots) {
+        context.beginPath();
+        context.arc(length * x, bodyHeight * y, length * r, 0, Math.PI * 2);
+        context.fill();
+      }
+      context.restore();
     }
 
     drawOvalBody(context, radiusX, radiusY) {
@@ -327,13 +387,13 @@
 
     drawStripes(context, bodyHeight, length) {
       context.strokeStyle = this.stripeColor;
-      context.lineWidth = Math.max(1.5, length * 0.035);
-      context.globalAlpha = 0.65;
+      context.lineWidth = Math.max(1.5, length * 0.032);
+      context.globalAlpha = 0.58;
       context.beginPath();
-      context.moveTo(-length * 0.10, -bodyHeight * 0.36);
-      context.quadraticCurveTo(-length * 0.03, 0, -length * 0.10, bodyHeight * 0.36);
-      context.moveTo(length * 0.10, -bodyHeight * 0.30);
-      context.quadraticCurveTo(length * 0.17, 0, length * 0.10, bodyHeight * 0.30);
+      context.moveTo(-length * 0.16, -bodyHeight * 0.34);
+      context.quadraticCurveTo(-length * 0.05, 0, -length * 0.13, bodyHeight * 0.38);
+      context.moveTo(length * 0.10, -bodyHeight * 0.28);
+      context.quadraticCurveTo(length * 0.20, 0, length * 0.08, bodyHeight * 0.30);
       context.stroke();
       context.globalAlpha = 1;
     }
