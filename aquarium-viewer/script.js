@@ -21,29 +21,32 @@
   const STORAGE_KEY = 'calmAquariumSettings';
   const MAX_FOOD = 80;
   const NAMES = ['ごんべ', 'ゾロカンス', 'ミレス', 'ルナ', 'しずく', 'アオ', 'こはく', 'ナギ', 'マリン', 'ポポ'];
+  const FISH_SPRITE_BASE_PATH = 'assets/fish/';
+  const fishSprites = new Map();
+
   const FISH_SHAPES = {
     goldfish: {
-      shape: 'goldfish', body: '#ffb45f', fin: '#ff784d', stripe: '#ffe1a8',
+      shape: 'goldfish', sprite: 'goldfish.svg', spriteWidth: 84, spriteHeight: 48, body: '#ffb45f', fin: '#ff784d', stripe: '#ffe1a8',
       sizeMin: 0.86, sizeMax: 1.18, speedMin: 22, speedMax: 38,
       depthMin: 0.38, depthMax: 0.62, bobAmountMin: 6, bobAmountMax: 13, foodChaseMultiplier: 0.9,
     },
     angelfish: {
-      shape: 'angelfish', body: '#d6a4ff', fin: '#8957ff', stripe: '#fff0ff',
+      shape: 'angelfish', sprite: 'angelfish.svg', spriteWidth: 70, spriteHeight: 88, body: '#d6a4ff', fin: '#8957ff', stripe: '#fff0ff',
       sizeMin: 0.82, sizeMax: 1.12, speedMin: 18, speedMax: 34,
       depthMin: 0.34, depthMax: 0.60, bobAmountMin: 4, bobAmountMax: 10, foodChaseMultiplier: 0.82,
     },
     minnow: {
-      shape: 'minnow', body: '#8ee6ff', fin: '#4aa8ff', stripe: '#e5fbff',
+      shape: 'minnow', sprite: 'minnow.svg', spriteWidth: 76, spriteHeight: 30, body: '#8ee6ff', fin: '#4aa8ff', stripe: '#e5fbff',
       sizeMin: 0.58, sizeMax: 0.88, speedMin: 48, speedMax: 78,
       depthMin: 0.20, depthMax: 0.48, bobAmountMin: 3, bobAmountMax: 8, foodChaseMultiplier: 1.18,
     },
     puffer: {
-      shape: 'puffer', body: '#ffd76e', fin: '#ff9f43', stripe: '#fff6ba',
+      shape: 'puffer', sprite: 'puffer.svg', spriteWidth: 62, spriteHeight: 52, body: '#ffd76e', fin: '#ff9f43', stripe: '#fff6ba',
       sizeMin: 0.74, sizeMax: 1.02, speedMin: 18, speedMax: 32,
       depthMin: 0.38, depthMax: 0.66, bobAmountMin: 10, bobAmountMax: 21, foodChaseMultiplier: 0.78,
     },
     catfish: {
-      shape: 'catfish', body: '#9fbe9b', fin: '#5d8d72', stripe: '#e8f2da',
+      shape: 'catfish', sprite: 'catfish.svg', spriteWidth: 84, spriteHeight: 36, body: '#9fbe9b', fin: '#5d8d72', stripe: '#e8f2da',
       sizeMin: 0.82, sizeMax: 1.10, speedMin: 28, speedMax: 48,
       depthMin: 0.64, depthMax: 0.78, bobAmountMin: 4, bobAmountMax: 9, foodChaseMultiplier: 0.96,
     },
@@ -111,6 +114,9 @@
       this.bodyColor = this.type.body;
       this.finColor = this.type.fin;
       this.stripeColor = this.type.stripe;
+      this.spriteKey = this.type.sprite;
+      this.spriteWidth = this.type.spriteWidth;
+      this.spriteHeight = this.type.spriteHeight;
       this.size = random(this.type.sizeMin, this.type.sizeMax);
       this.length = 58 * this.size;
       const initialSpeed = random(this.type.speedMin, this.type.speedMax) * (Math.random() > 0.5 ? 1 : -1);
@@ -180,15 +186,31 @@
     draw(context, showName) {
       context.save();
       context.translate(this.x, this.y);
+      const swimTilt = Math.sin(performance.now() * 0.006 + this.phase) * 0.04;
+      context.rotate(swimTilt);
       context.scale(this.turn >= 0 ? 1 : -1, 1);
+
+      if (!this.drawSprite(context)) this.drawFallbackShape(context);
+      context.restore();
+
+      if (showName) this.drawName(context);
+    }
+
+    drawSprite(context) {
+      const sprite = fishSprites.get(this.spriteKey);
+      if (!sprite || !sprite.loaded || !sprite.image.complete) return false;
+      const width = this.spriteWidth * this.size;
+      const height = this.spriteHeight * this.size;
+      context.drawImage(sprite.image, -width * 0.5, -height * 0.5, width, height);
+      return true;
+    }
+
+    drawFallbackShape(context) {
       if (this.shape === 'goldfish') this.drawGoldfish(context);
       else if (this.shape === 'angelfish') this.drawAngelfish(context);
       else if (this.shape === 'minnow') this.drawMinnow(context);
       else if (this.shape === 'puffer') this.drawPuffer(context);
       else if (this.shape === 'catfish') this.drawCatfish(context);
-      context.restore();
-
-      if (showName) this.drawName(context);
     }
 
     drawName(context) {
@@ -450,6 +472,19 @@
       context.beginPath();
       context.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
       context.fill();
+    }
+  }
+
+
+  function preloadFishSprites() {
+    const spriteNames = [...new Set(FISH_TYPES.map((type) => type.sprite))];
+    for (const spriteName of spriteNames) {
+      const image = new Image();
+      const entry = { image, loaded: false, failed: false };
+      fishSprites.set(spriteName, entry);
+      image.addEventListener('load', () => { entry.loaded = true; });
+      image.addEventListener('error', () => { entry.failed = true; });
+      image.src = `${FISH_SPRITE_BASE_PATH}${spriteName}`;
     }
   }
 
@@ -746,6 +781,7 @@
   }
 
 
+  preloadFishSprites();
   resize();
   applySettingsToUi();
   bindEvents();
