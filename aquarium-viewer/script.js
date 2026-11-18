@@ -24,26 +24,31 @@
   const FISH_SHAPES = {
     goldfish: {
       shape: 'goldfish', body: '#ffb45f', fin: '#ff784d', stripe: '#ffe1a8',
+      sprite: 'assets/fish/goldfish.webp', spriteFrames: 3, spriteWidth: 112, spriteHeight: 75, tailBeatsPerSecond: 1.25,
       sizeMin: 0.86, sizeMax: 1.18, speedMin: 22, speedMax: 38,
       depthMin: 0.38, depthMax: 0.62, bobAmountMin: 6, bobAmountMax: 13, foodChaseMultiplier: 0.9,
     },
     angelfish: {
       shape: 'angelfish', body: '#d6a4ff', fin: '#8957ff', stripe: '#fff0ff',
+      sprite: 'assets/fish/angelfish.webp', spriteFrames: 3, spriteWidth: 88, spriteHeight: 107, tailBeatsPerSecond: 0.85,
       sizeMin: 0.82, sizeMax: 1.12, speedMin: 18, speedMax: 34,
       depthMin: 0.34, depthMax: 0.60, bobAmountMin: 4, bobAmountMax: 10, foodChaseMultiplier: 0.82,
     },
     minnow: {
       shape: 'minnow', body: '#8ee6ff', fin: '#4aa8ff', stripe: '#e5fbff',
+      sprite: 'assets/fish/minnow.webp', spriteFrames: 3, spriteWidth: 105, spriteHeight: 32, tailBeatsPerSecond: 2.1,
       sizeMin: 0.58, sizeMax: 0.88, speedMin: 48, speedMax: 78,
       depthMin: 0.20, depthMax: 0.48, bobAmountMin: 3, bobAmountMax: 8, foodChaseMultiplier: 1.18,
     },
     puffer: {
       shape: 'puffer', body: '#ffd76e', fin: '#ff9f43', stripe: '#fff6ba',
+      sprite: 'assets/fish/puffer.webp', spriteFrames: 3, spriteWidth: 85, spriteHeight: 59, tailBeatsPerSecond: 1.4,
       sizeMin: 0.74, sizeMax: 1.02, speedMin: 18, speedMax: 32,
       depthMin: 0.38, depthMax: 0.66, bobAmountMin: 10, bobAmountMax: 21, foodChaseMultiplier: 0.78,
     },
     catfish: {
       shape: 'catfish', body: '#9fbe9b', fin: '#5d8d72', stripe: '#e8f2da',
+      sprite: 'assets/fish/catfish.webp', spriteFrames: 3, spriteWidth: 130, spriteHeight: 42, tailBeatsPerSecond: 1.05,
       sizeMin: 0.82, sizeMax: 1.10, speedMin: 28, speedMax: 48,
       depthMin: 0.64, depthMax: 0.78, bobAmountMin: 4, bobAmountMax: 9, foodChaseMultiplier: 0.96,
     },
@@ -65,6 +70,7 @@
     },
     ゾロカンス: {
       ...FISH_SHAPES.minnow,
+      sprite: 'assets/fish/zorokansu.webp', spriteWidth: 142, spriteHeight: 34, tailBeatsPerSecond: 1.65,
       body: '#6fb7d8', fin: '#2f6f9e', stripe: '#d9f7ff',
       sizeMin: 1.22, sizeMax: 1.42, speedMin: 70, speedMax: 96,
       depthMin: 0.24, depthMax: 0.58, bobAmountMin: 3, bobAmountMax: 7, foodChaseMultiplier: 1.55,
@@ -76,6 +82,23 @@
       depthMin: 0.38, depthMax: 0.56, bobAmountMin: 3, bobAmountMax: 7, foodChaseMultiplier: 0.78,
     },
   };
+
+  const fishSprites = new Map();
+
+  async function preloadFishSprites() {
+    const types = [...FISH_TYPES, ...Object.values(NAMED_FISH_CONFIG)];
+    const paths = new Set(types.map((type) => type.sprite));
+    await Promise.all(Array.from(paths, async (path) => {
+      const image = new Image();
+      image.src = path;
+      try {
+        await image.decode();
+        fishSprites.set(path, image);
+      } catch {
+        // 読み込めなかった魚だけ、従来の Canvas 描画を使う。
+      }
+    }));
+  }
 
   const TIME_THEMES = {
     day: {
@@ -113,6 +136,8 @@
       this.stripeColor = this.type.stripe;
       this.size = random(this.type.sizeMin, this.type.sizeMax);
       this.length = 58 * this.size;
+      this.spriteWidth = this.type.spriteWidth * this.size;
+      this.spriteHeight = this.type.spriteHeight * this.size;
       const initialSpeed = random(this.type.speedMin, this.type.speedMax) * (Math.random() > 0.5 ? 1 : -1);
       this.cruiseSpeed = Math.abs(initialSpeed);
       this.direction = initialSpeed >= 0 ? 1 : -1;
@@ -123,7 +148,7 @@
       this.phase = random(0, Math.PI * 2);
       this.bobAmount = random(this.type.bobAmountMin, this.type.bobAmountMax);
       this.bobSpeed = this.shape === 'angelfish' ? random(0.55, 1.0) : random(0.8, 1.7);
-      this.turn = this.direction;
+      this.strokePhase = this.phase;
       this.targetFood = null;
     }
 
@@ -160,7 +185,7 @@
       }
 
       // 端では低下した現在速度ではなく、巡航速度を基準に反転する。
-      const margin = this.length * 0.65;
+      const margin = Math.max(this.length * 0.65, this.spriteWidth / 2 + this.cruiseSpeed * 0.14);
       if (this.x > width - margin) {
         this.direction = -1;
         desiredSpeed = -this.cruiseSpeed;
@@ -170,8 +195,8 @@
         desiredSpeed = this.cruiseSpeed;
       }
       this.speed += (desiredSpeed - this.speed) * Math.min(1, dt * 2.4);
-      const facingDirection = Math.abs(this.speed) > 0.5 ? Math.sign(this.speed) : this.direction;
-      this.turn += (facingDirection - this.turn) * Math.min(1, dt * 4);
+      const effort = clamp(Math.abs(this.speed) / this.cruiseSpeed, 0.35, 1.6);
+      this.strokePhase = (this.strokePhase + dt * this.type.tailBeatsPerSecond * Math.PI * 2 * effort) % (Math.PI * 2);
       this.x += this.speed * dt;
       this.y += (targetY - this.y) * Math.min(1, dt * 2.2);
       this.y = clamp(this.y, height * 0.13, height * 0.82 - this.length * 0.12);
@@ -180,25 +205,39 @@
     draw(context, showName) {
       context.save();
       context.translate(this.x, this.y);
-      context.scale(this.turn >= 0 ? 1 : -1, 1);
+      context.scale(Math.sign(this.speed) || this.direction, 1);
+      const image = fishSprites.get(this.type.sprite);
+      if (image) {
+        const frame = Math.round((1 - Math.cos(this.strokePhase)) / 2 * (this.type.spriteFrames - 1));
+        const frameWidth = image.naturalWidth / this.type.spriteFrames;
+        context.drawImage(image, frame * frameWidth, 0, frameWidth, image.naturalHeight,
+          -this.spriteWidth / 2, -this.spriteHeight / 2, this.spriteWidth, this.spriteHeight);
+      } else {
+        this.drawFallback(context);
+      }
+      context.restore();
+
+      if (showName) this.drawName(context, image ? this.spriteHeight / 2 + 4 : this.length * 0.36);
+    }
+
+    drawFallback(context) {
       if (this.shape === 'goldfish') this.drawGoldfish(context);
       else if (this.shape === 'angelfish') this.drawAngelfish(context);
       else if (this.shape === 'minnow') this.drawMinnow(context);
       else if (this.shape === 'puffer') this.drawPuffer(context);
       else if (this.shape === 'catfish') this.drawCatfish(context);
-      context.restore();
-
-      if (showName) this.drawName(context);
     }
 
-    drawName(context) {
+    drawName(context, offset) {
       context.save();
-      context.font = `${Math.max(12, 12 * this.size)}px sans-serif`;
+      const fontSize = Math.max(12, 12 * this.size);
+      const baseline = Math.max(fontSize, this.y - offset);
+      context.font = `${fontSize}px sans-serif`;
       context.textAlign = 'center';
       context.fillStyle = 'rgba(1, 16, 25, 0.45)';
-      context.fillText(this.name, this.x + 1, this.y - this.length * 0.36 + 1);
+      context.fillText(this.name, this.x + 1, baseline + 1);
       context.fillStyle = 'rgba(240, 252, 255, 0.92)';
-      context.fillText(this.name, this.x, this.y - this.length * 0.36);
+      context.fillText(this.name, this.x, baseline);
       context.restore();
     }
 
@@ -485,8 +524,15 @@
   function resize() {
     const rect = canvas.getBoundingClientRect();
     state.dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const previousWidth = state.width;
+    const previousHeight = state.height;
     state.width = Math.max(320, rect.width);
     state.height = Math.max(360, rect.height);
+    for (const fish of state.fish) {
+      fish.x *= state.width / previousWidth;
+      fish.y *= state.height / previousHeight;
+      fish.baseY *= state.height / previousHeight;
+    }
     canvas.width = Math.floor(state.width * state.dpr);
     canvas.height = Math.floor(state.height * state.dpr);
     ctx.setTransform(state.dpr, 0, 0, state.dpr, 0, 0);
@@ -750,5 +796,8 @@
   applySettingsToUi();
   bindEvents();
   syncEntities();
-  requestAnimationFrame(animate);
+  preloadFishSprites().then(() => {
+    state.lastTime = performance.now();
+    requestAnimationFrame(animate);
+  });
 })();
